@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mahābhārata Family Tree – Linked (fixed lines)</title>
+<style>
+  :root{--bg:#faf7ef;--ink:#222;--mute:#6b7280;--line:#cdbfae;--mar:#7c3aed;--niyoga:#0ea5e9}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+  header{position:sticky;top:0;background:linear-gradient(to bottom,rgba(250,247,239,.95),rgba(250,247,239,.75));backdrop-filter:saturate(140%) blur(6px);z-index:10;border-bottom:1px solid #e7dfd2}
+  header .wrap{max-width:1200px;margin:auto;padding:10px 14px;display:flex;gap:14px;align-items:center}
+  h1{margin:0;font-size:18px;font-weight:800}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto;font-size:12px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;border:1px solid #0001;background:#fff8}
+  .dot{width:10px;height:10px;border-radius:50%}
+
+  /* Canvas */
+  .viewport{position:relative;height:calc(100vh - 54px);overflow:auto;border-top:1px solid #e7dfd2}
+  .stage{position:relative; width: 2880px; height: 1800px; margin: 24px auto; background: #fff; border:1px solid #e6dfd3; border-radius:12px; box-shadow:0 10px 40px -20px #0003}
+
+  /* Grid placement */
+  .grid{--cw:170px; --rh:120px; position:absolute; inset:0; z-index:10}
+  .person{position:absolute; width:150px; min-height:54px; background:#fff; border:2px solid #0003; border-radius:10px; padding:8px 10px; text-align:center; box-shadow:0 1px 0 #00000010; z-index:20}
+  .name{font-weight:800}
+  .sub{font-size:11px;color:var(--mute);margin-top:4px}
+  .hint{font-size:10px;color:#374151;margin-top:6px}
+  .marriage-label{position:absolute; transform:translate(-50%, -50%); font-size:11px; color:#444; background:#fff; padding:1px 6px; border-radius:999px; border:1px solid #0002}
+
+  /* Lines - ensure visible on top */
+  svg{position:absolute; inset:0; pointer-events:none; z-index:60; stroke-linecap:round; stroke-linejoin:round}
+  .edge{stroke:#a66933; stroke-width:2; fill:none; stroke-opacity:0.95}
+  .marriage{stroke:var(--mar); stroke-width:3; stroke-opacity:0.98}
+  .niyoga{stroke:var(--niyoga); stroke-width:3; stroke-dasharray:6 5; stroke-opacity:0.98}
+
+  .pill{display:inline-block;padding:1px 6px;border-radius:999px;border:1px solid #0002;background:#fff;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Mahābhārata — Linked Family Tree (core dynasties)</h1>
+    <div class="legend">
+      <span class="badge"><span class="dot" style="background:#7c3aed"></span>Marriage</span>
+      <span class="badge"><span class="dot" style="background:#0ea5e9"></span>Niyoga/Divine union</span>
+      <span class="badge"><span class="dot" style="background:#a66933"></span>Parent → Child</span>
+    </div>
+  </div>
+</header>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <svg id="wires" preserveAspectRatio="none"></svg>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+<script>
+// --- utilities & setup ---
+const CW = 170, RH = 120, OFFSET_X = 80, OFFSET_Y = 60; // cell width/row height
+const grid = document.getElementById('grid');
+const wires = document.getElementById('wires');
+const stage = document.getElementById('stage');
+
+function fitSVG(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  wires.setAttribute('width', w);
+  wires.setAttribute('height', h);
+  wires.setAttribute('viewBox', `0 0 ${w} ${h}`);
+}
+
+function place(id, col, row, name, sub="", hint=""){
+  const el = document.createElement('div');
+  el.className = 'person';
+  el.id = id;
+  el.style.left = (col*CW + OFFSET_X) + 'px';
+  el.style.top  = (row*RH + OFFSET_Y) + 'px';
+  el.innerHTML = `<div class="name">${name}</div>` + (sub?`<div class="sub">${sub}</div>`:``) + (hint?`<div class="hint">${hint}</div>`:``);
+  grid.appendChild(el);
+  return el;
+}
+function center(el){
+  const r = el.getBoundingClientRect();
+  const p = stage.getBoundingClientRect();
+  return {x: r.left - p.left + r.width/2, y: r.top - p.top + r.height/2, top: r.top - p.top, left:r.left - p.left, width:r.width, height:r.height};
+}
+function linePath(x1,y1,x2,y2){ return `M ${x1} ${y1} C ${x1} ${(y1+y2)/2}, ${x2} ${(y1+y2)/2}, ${x2} ${y2}`; }
+function drawEdge(x1,y1,x2,y2, cls='edge'){ const p=document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('d', linePath(x1,y1,x2,y2)); p.setAttribute('class', cls); wires.appendChild(p); return p; }
+function marriage(a,b,{type='marriage',label='' }={}){
+  const A=center(document.getElementById(a)), B=center(document.getElementById(b));
+  const y = Math.max(A.top + A.height, B.top + B.height) + 8;
+  const x1 = A.x, x2=B.x;
+  drawEdge(x1,y, x2,y, type==='niyoga'?'niyoga':'marriage');
+  const ux = (x1+x2)/2, uy = y;
+  if(label){ const t=document.createElement('div'); t.className='marriage-label'; t.textContent = label; t.style.left=ux+'px'; t.style.top=(uy-10)+'px'; grid.appendChild(t);} 
+  return {x:ux, y:uy};
+}
+function child(unionPoint, childId){
+  const C = center(document.getElementById(childId));
+  drawEdge(unionPoint.x, unionPoint.y, C.x, C.top, 'edge');
+}
+
+// ensure SVG sized before drawing
+fitSVG();
+
+// --- placement (columns, rows) ---
+// Row 0: Ancestors & spouses
+place('shantanu', 7,0,'King Śantanu','King of Hastināpura');
+place('ganga',     5,0,'Gaṅgā','River goddess');
+place('satyavati', 9,0,'Satyavatī','Queen; daughter of a fisherman');
+place('parashara',11,0,'Paraśara','Sage');
+
+// Row 1: Children of row0
+place('bhishma',   5,1,'Bhīṣma (Devavrata)','Grandsire');
+place('chitr',     7,1,'Chitrāṅgada','Son (d. young)');
+place('vichit',    9,1,'Vichitravīrya','Younger son');
+place('vyasa',    11,1,'Vyāsa (Kṛṣṇa Dvaipāyana)','Compiler of Mahābhārata');
+
+// Row 2: Spouses for Vichitravirya & alliances
+place('ambika',    8,2,'Ambikā','Queen of Hastināpura');
+place('ambalika', 10,2,'Ambālikā','Queen of Hastināpura');
+place('maid',     12,2,'Maid/Attendant','Nīyoga with Vyāsa');
+place('gandhari',  6,2,'Gāndhārī','Wife of Dhṛtarāṣṭra');
+place('kunti',     3,2,'Kuntī (Pṛthā)','1st wife of Pāṇḍu');
+place('madri',     4,2,'Mādrī','2nd wife of Pāṇḍu');
+place('surya',     1,2,'Sūrya','Divine union with Kuntī');
+
+// Yādava cluster (for Subhadrā/Kṛṣṇa)
+place('vasudeva', 13,2,'Vasudeva','Yādava chief');
+place('rohini',   14,2,'Rohiṇī','Wife of Vasudeva');
+place('devaki',   15,2,'Devakī','Wife of Vasudeva');
+
+// Row 3: Dhritarashtra/Pandu/Vidura + Yādavas
+place('dhrit',     7,3,'Dhṛtarāṣṭra','by Vyāsa + Ambikā');
+place('pandu',     9,3,'Pāṇḍu','by Vyāsa + Ambālikā');
+place('vidura',   11,3,'Vidura','by Vyāsa + maid');
+place('krishna',  15,3,'Kṛṣṇa (Vāsudeva)','son of Devakī');
+place('balarama', 14,3,'Balarāma','son of Rohiṇī');
+place('subhadra', 13,3,'Subhadrā','sister of Kṛṣṇa');
+
+// Row 4: Kauravas & Pāṇḍavas
+place('dury',      6,4,'Duryodhana','eldest Kaurava');
+place('dusha',     7,4,'Duḥśāsana','Kaurava');
+place('dushala',   5,4,'Duśśalā','Kaurava sister');
+
+place('yudhi',     3,4,'Yudhiṣṭhira','by Dharma');
+place('bhima',     4,4,'Bhīma','by Vāyu');
+place('arjuna',    5,4,'Arjuna','by Indra');
+place('nakula',    8,4,'Nakula','by Aśvins');
+place('sahadeva',  9,4,'Sahadeva','by Aśvins');
+place('karna',     2,4,'Karna','Kuntī + Sūrya (pre-marital)');
+
+// Row 5: Next gen
+place('abhimanyu', 6,5,'Abhimanyu','son of Arjuna + Subhadrā');
+place('uttara',    6,6,'Uttarā (Matsya)','wife of Abhimanyu');
+place('parik',     6,7,'Parīkṣit','son of Abhimanyu + Uttarā');
+place('janam',     6,8,'Janamejaya','son of Parīkṣit');
+
+// --- wires ---
+// clear before drawing (if rerun)
+wires.innerHTML = '';
+
+// Shantanu marriages
+let u;
+fitSVG();
+u = marriage('shantanu','ganga',{label:'marriage'}); child(u,'bhishma');
+u = marriage('shantanu','satyavati',{label:'marriage'}); child(u,'chitr'); child(u,'vichit');
+// Parashara + Satyavati (before Shantanu) → Vyasa
+u = marriage('parashara','satyavati',{type:'niyoga',label:'union'}); child(u,'vyasa');
+
+// Vichitravirya marriages (no biological issue)
+marriage('vichit','ambika',{label:'marriage'}); marriage('vichit','ambalika',{label:'marriage'});
+
+// Vyasa unions (niyoga) to be explicit mothers
+u = marriage('vyasa','ambika',{type:'niyoga',label:'niyoga'}); child(u,'dhrit');
+u = marriage('vyasa','ambalika',{type:'niyoga',label:'niyoga'}); child(u,'pandu');
+u = marriage('vyasa','maid',{type:'niyoga',label:'niyoga'}); child(u,'vidura');
+
+// Dhritarashtra + Gandhari → Kauravas
+u = marriage('dhrit','gandhari',{label:'marriage'}); child(u,'dury'); child(u,'dusha'); child(u,'dushala');
+
+// Pandu + Kunti/Madri → Pandavas
+let uk = marriage('pandu','kunti',{label:'marriage'}); child(uk,'yudhi'); child(uk,'bhima'); child(uk,'arjuna');
+let um = marriage('pandu','madri',{label:'marriage'}); child(um,'nakula'); child(um,'sahadeva');
+
+// Kunti + Surya → Karna
+u = marriage('kunti','surya',{type:'niyoga',label:'divine union'}); child(u,'karna');
+
+// Vasudeva marriages → Balarama, Krishna, Subhadra
+let ur = marriage('vasudeva','rohini',{label:'marriage'}); child(ur,'balarama'); child(ur,'subhadra');
+let ud = marriage('vasudeva','devaki',{label:'marriage'}); child(ud,'krishna');
+
+// Arjuna + Subhadra → Abhimanyu
+u = marriage('arjuna','subhadra',{label:'marriage'}); child(u,'abhimanyu');
+
+// Abhimanyu + Uttara → Parikshit → Janamejaya
+u = marriage('abhimanyu','uttara',{label:'marriage'}); child(u,'parik');
+child({x:center(document.getElementById('parik')).x, y:center(document.getElementById('parik')).top + document.getElementById('parik').offsetHeight + 8}, 'janam');
+
+// handle window resize: resize svg and redraw lines (simple approach: reload page)
+window.addEventListener('resize', ()=>{
+  // small redraw strategy: clear wires and re-run drawing logic
+  // For reliability, reload (simpler) — can be replaced with smarter redraw logic later
+  // location.reload();
+});
+</script>
+</body>
+</html>
