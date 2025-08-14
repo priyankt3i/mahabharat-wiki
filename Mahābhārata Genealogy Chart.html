@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahābhārata Genealogy Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        h1 {
+            color: #1a237e;
+            margin-top: 20px;
+        }
+        #chart-container {
+            position: relative;
+            width: 95%;
+            max-width: 1200px;
+            height: 80vh;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+        .node circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
+        .node text {
+            font-size: 10px;
+            fill: #444;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        #tooltip {
+            position: absolute;
+            visibility: hidden;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.4;
+            max-width: 300px;
+            pointer-events: none;
+            transition: visibility 0.2s, opacity 0.2s;
+            opacity: 0;
+        }
+        #tooltip h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #64b5f6;
+        }
+        #tooltip p {
+            margin: 0;
+        }
+        #legend {
+            padding: 10px;
+            margin-top: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Mahābhārata Interactive Genealogy Chart</h1>
+    <div id="chart-container">
+        <svg id="genealogy-chart"></svg>
+        <div id="tooltip"></div>
+    </div>
+    <div id="legend"></div>
+
+<script>
+    // The JSON dataset provided earlier
+    const jsonData = {
+      "mahabharata_genealogy": [
+        { "id": 1, "name": "King Shantanu", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "King of Hastinapura, ancestor of the Pandavas and Kauravas.", "relationships": [{ "related_to": 2, "type": "Spouse" }, { "related_to": 4, "type": "Spouse" }, { "related_to": 3, "type": "Son" }, { "related_to": 7, "type": "Son" }, { "related_to": 8, "type": "Son" }] },
+        { "id": 2, "name": "Ganga", "aliases": [], "category": "Celestial & Mythological Beings", "description": "River goddess, the first wife of Shantanu.", "relationships": [{ "related_to": 1, "type": "Spouse" }, { "related_to": 3, "type": "Mother" }] },
+        { "id": 3, "name": "Bhishma", "aliases": ["Devavrata"], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "Son of Shantanu and Ganga. He took a vow of celibacy and served as the grandsire and protector of Hastinapura.", "relationships": [{ "related_to": 1, "type": "Father" }, { "related_to": 2, "type": "Mother" }, { "related_to": 15, "type": "Grand-uncle" }, { "related_to": 11, "type": "Grand-uncle" }, { "related_to": 21, "type": "Grand-uncle" }, { "related_to": 45, "type": "Great-grand-uncle" }, { "related_to": 17, "type": "Great-grand-uncle" }, { "related_to": 28, "type": "Nemesis" }] },
+        { "id": 4, "name": "Satyavati", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "A fisherwoman who became Shantanu's second wife.", "relationships": [{ "related_to": 1, "type": "Spouse" }, { "related_to": 5, "type": "Partner", "notes": "Had a son, Vyasa, before her marriage to Shantanu." }, { "related_to": 6, "type": "Son" }, { "related_to": 7, "type": "Son" }, { "related_to": 8, "type": "Son" }] },
+        { "id": 5, "name": "Parashara", "aliases": [], "category": "Rishis, Teachers, and Spiritual Figures", "description": "A powerful sage who fathered Vyasa with Satyavati.", "relationships": [{ "related_to": 4, "type": "Partner" }, { "related_to": 6, "type": "Father" }] },
+        { "id": 6, "name": "Vyasa", "aliases": ["Krishna Dwaipayana"], "category": "Rishis, Teachers, and Spiritual Figures", "description": "The sage who authored the Mahābhārata. He fathered Dhritarashtra, Pandu, and Vidura through the practice of niyoga.", "relationships": [{ "related_to": 5, "type": "Father" }, { "related_to": 4, "type": "Mother" }, { "related_to": 15, "type": "Son", "notes": "Conceived with Ambika via niyoga." }, { "related_to": 11, "type": "Son", "notes": "Conceived with Ambalika via niyoga." }, { "related_to": 21, "type": "Son", "notes": "Conceived with an unnamed maid via niyoga." }] },
+        { "id": 7, "name": "Chitrangada", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The elder son of Shantanu and Satyavati, killed at a young age.", "relationships": [{ "related_to": 1, "type": "Father" }, { "related_to": 4, "type": "Mother" }, { "related_to": 8, "type": "Brother" }, { "related_to": 3, "type": "Half-brother" }, { "related_to": 6, "type": "Half-brother" }] },
+        { "id": 8, "name": "Vichitravirya", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The younger son of Shantanu and Satyavati. He died childless.", "relationships": [{ "related_to": 1, "type": "Father" }, { "related_to": 4, "type": "Mother" }, { "related_to": 7, "type": "Brother" }, { "related_to": 3, "type": "Half-brother" }, { "related_to": 6, "type": "Half-brother" }, { "related_to": 9, "type": "Spouse" }, { "related_to": 10, "type": "Spouse" }] },
+        { "id": 9, "name": "Ambika", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "Wife of Vichitravirya. She became the mother of Dhritarashtra through niyoga with Vyasa.", "relationships": [{ "related_to": 8, "type": "Spouse" }, { "related_to": 10, "type": "Sister" }, { "related_to": 6, "type": "Partner", "notes": "via niyoga"}, { "related_to": 15, "type": "Mother" }] },
+        { "id": 10, "name": "Ambalika", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "Wife of Vichitravirya. She became the mother of Pandu through niyoga with Vyasa.", "relationships": [{ "related_to": 8, "type": "Spouse" }, { "related_to": 9, "type": "Sister" }, { "related_to": 6, "type": "Partner", "notes": "via niyoga"}, { "related_to": 11, "type": "Mother" }] },
+        { "id": 11, "name": "King Pandu", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The legal father of the Pandavas and King of Hastinapura.", "relationships": [{ "related_to": 6, "type": "Biological Father" }, { "related_to": 8, "type": "Legal Father" }, { "related_to": 10, "type": "Mother" }, { "related_to": 15, "type": "Half-brother" }, { "related_to": 21, "type": "Half-brother" }, { "related_to": 12, "type": "Spouse" }, { "related_to": 76, "type": "Spouse" }, { "related_to": 45, "type": "Son" }, { "related_to": 46, "type": "Son" }, { "related_to": 13, "type": "Son" }, { "related_to": 47, "type": "Son" }, { "related_to": 48, "type": "Son" }] },
+        { "id": 12, "name": "Kunti", "aliases": ["Pritha"], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "First wife of Pandu. Using a divine boon, she invoked various gods to bear sons.", "relationships": [{ "related_to": 11, "type": "Spouse" }, { "related_to": 54, "type": "Divine Partner", "notes": "Conceived Karna pre-maritally."}, { "related_to": 52, "type": "Divine Partner", "notes": "Conceived Yudhishthira."}, { "related_to": 53, "type": "Divine Partner", "notes": "Conceived Bhima."}, { "related_to": 64, "type": "Divine Partner", "notes": "Conceived Arjuna."}, { "related_to": 14, "type": "Son" }, { "related_to": 45, "type": "Son" }, { "related_to": 46, "type": "Son" }, { "related_to": 13, "type": "Son" }] },
+        { "id": 13, "name": "Arjuna", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The third Pandava, a master archer and central hero of the Mahābhārata.", "relationships": [{ "related_to": 11, "type": "Father" }, { "related_to": 12, "type": "Mother" }, { "related_to": 64, "type": "Spiritual Father" }, { "related_to": 45, "type": "Brother" }, { "related_to": 46, "type": "Brother" }, { "related_to": 47, "type": "Half-brother" }, { "related_to": 48, "type": "Half-brother" }, { "related_to": 14, "type": "Half-brother" }, { "related_to": 26, "type": "Spouse" }, { "related_to": 30, "type": "Spouse" }, { "related_to": 29, "type": "Son" }, { "related_to": 39, "type": "Student" }, { "related_to": 22, "type": "Cousin and Friend" }] },
+        { "id": 14, "name": "Karna", "aliases": ["Radheya", "Vasusena"], "category": "Allies & Friends of the Kauravas", "description": "The firstborn son of Kunti and the sun god Surya. Raised by a charioteer.", "relationships": [{ "related_to": 12, "type": "Mother" }, { "related_to": 54, "type": "Spiritual Father" }, { "related_to": 49, "type": "Adoptive Father" }, { "related_to": 50, "type": "Adoptive Mother" }, { "related_to": 45, "type": "Half-brother" }, { "related_to": 46, "type": "Half-brother" }, { "related_to": 13, "type": "Half-brother and Rival" }, { "related_to": 17, "type": "Ally and Friend" }] },
+        { "id": 15, "name": "Dhritarashtra", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The blind king of Hastinapura and father of the Kauravas.", "relationships": [{ "related_to": 6, "type": "Biological Father" }, { "related_to": 8, "type": "Legal Father" }, { "related_to": 9, "type": "Mother" }, { "related_to": 11, "type": "Half-brother" }, { "related_to": 21, "type": "Half-brother" }, { "related_to": 16, "type": "Spouse" }, { "related_to": 17, "type": "Son" }, { "related_to": 18, "type": "Son" }, { "related_to": 72, "type": "Son" }, { "related_to": 19, "type": "Daughter" }, { "related_to": 44, "type": "Son", "notes": "Conceived with a Vaishya woman." }] },
+        { "id": 16, "name": "Gandhari", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "Wife of Dhritarashtra and mother of the 100 Kauravas.", "relationships": [{ "related_to": 15, "type": "Spouse" }, { "related_to": 35, "type": "Brother" }, { "related_to": 17, "type": "Son" }, { "related_to": 18, "type": "Son" }, { "related_to": 72, "type": "Son" }, { "related_to": 19, "type": "Daughter" }] },
+        { "id": 17, "name": "Duryodhana", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The eldest of the 100 Kaurava brothers and the primary antagonist to the Pandavas.", "relationships": [{ "related_to": 15, "type": "Father" }, { "related_to": 16, "type": "Mother" }, { "related_to": 18, "type": "Brother" }, { "related_to": 72, "type": "Brother" }, { "related_to": 19, "type": "Sister" }, { "related_to": 44, "type": "Half-brother" }, { "related_to": 14, "type": "Ally and Friend" }, { "related_to": 35, "type": "Maternal Uncle" }, { "related_to": 45, "type": "Cousin and Rival" }] },
+        { "id": 18, "name": "Dushasana", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The second Kaurava brother, infamous for attempting to disrobe Draupadi.", "relationships": [{ "related_to": 15, "type": "Father" }, { "related_to": 16, "type": "Mother" }, { "related_to": 17, "type": "Brother" }, { "related_to": 72, "type": "Brother" }, { "related_to": 19, "type": "Sister" }] },
+        { "id": 19, "name": "Dushala", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The only daughter of Dhritarashtra and Gandhari.", "relationships": [{ "related_to": 15, "type": "Father" }, { "related_to": 16, "type": "Mother" }, { "related_to": 17, "type": "Brother" }, { "related_to": 20, "type": "Spouse" }] },
+        { "id": 20, "name": "Jayadratha", "aliases": [], "category": "Allies & Friends of the Kauravas", "description": "King of Sindhu and husband of Dushala. He played a key role in trapping and killing Abhimanyu.", "relationships": [{ "related_to": 19, "type": "Spouse" }, { "related_to": 17, "type": "Ally" }, { "related_to": 29, "type": "Slayer (part of group)" }] },
+        { "id": 21, "name": "Vidura", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The wise prime minister of Hastinapura, half-brother to Dhritarashtra and Pandu.", "relationships": [{ "related_to": 6, "type": "Father" }, { "related_to": 51, "type": "Mother" }, { "related_to": 15, "type": "Half-brother" }, { "related_to": 11, "type": "Half-brother" }] },
+        { "id": 22, "name": "Krishna", "aliases": ["Vasudeva"], "category": "Allies & Friends of the Pandavas", "description": "An incarnation of Vishnu, cousin to the Pandavas, and Arjuna's charioteer and guide.", "relationships": [{ "related_to": 12, "type": "Paternal Aunt" }, { "related_to": 45, "type": "Cousin" }, { "related_to": 13, "type": "Cousin and Friend" }, { "related_to": 23, "type": "Brother" }, { "related_to": 30, "type": "Sister" }] },
+        { "id": 23, "name": "Balarama", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "Krishna's elder brother. He remained neutral in the war.", "relationships": [{ "related_to": 22, "type": "Brother" }, { "related_to": 30, "type": "Sister" }, { "related_to": 46, "type": "Teacher (Mace)" }, { "related_to": 17, "type": "Teacher (Mace)" }] },
+        { "id": 24, "name": "Satyaki", "aliases": ["Yuyudhana"], "category": "Allies & Friends of the Pandavas", "description": "A powerful Vrishni warrior and a devoted disciple of Arjuna who fought for the Pandavas.", "relationships": [{ "related_to": 13, "type": "Student" }, { "related_to": 45, "type": "Ally" }] },
+        { "id": 25, "name": "Drupada", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "King of Panchala and a staunch ally of the Pandavas.", "relationships": [{ "related_to": 26, "type": "Daughter" }, { "related_to": 27, "type": "Son" }, { "related_to": 28, "type": "Child" }, { "related_to": 39, "type": "Childhood Friend and Rival" }] },
+        { "id": 26, "name": "Draupadi", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "Daughter of Drupada, she was the common wife of the five Pandava brothers.", "relationships": [{ "related_to": 25, "type": "Father" }, { "related_to": 27, "type": "Brother" }, { "related_to": 28, "type": "Sibling" }, { "related_to": 45, "type": "Spouse" }, { "related_to": 46, "type": "Spouse" }, { "related_to": 13, "type": "Spouse" }, { "related_to": 47, "type": "Spouse" }, { "related_to": 48, "type": "Spouse" }] },
+        { "id": 27, "name": "Dhrishtadyumna", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "Brother of Draupadi and commander-in-chief of the Pandava army. He was destined to kill Drona.", "relationships": [{ "related_to": 25, "type": "Father" }, { "related_to": 26, "type": "Sister" }, { "related_to": 39, "type": "Slayer" }] },
+        { "id": 28, "name": "Shikhandi", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "Child of Drupada, born female as Amba in a previous life. Played a crucial role in the death of Bhishma.", "relationships": [{ "related_to": 25, "type": "Father" }, { "related_to": 26, "type": "Sibling" }, { "related_to": 3, "type": "Nemesis" }] },
+        { "id": 29, "name": "Abhimanyu", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "The valiant son of Arjuna and Subhadra. He was tragically killed in the war.", "relationships": [{ "related_to": 13, "type": "Father" }, { "related_to": 30, "type": "Mother" }, { "related_to": 31, "type": "Spouse" }, { "related_to": 70, "type": "Son" }, { "related_to": 22, "type": "Maternal Uncle" }, { "related_to": 20, "type": "Slayer (part of group)" }] },
+        { "id": 30, "name": "Subhadra", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "Sister of Krishna and Balarama, and wife of Arjuna.", "relationships": [{ "related_to": 22, "type": "Brother" }, { "related_to": 23, "type": "Brother" }, { "related_to": 13, "type": "Spouse" }, { "related_to": 29, "type": "Mother" }] },
+        { "id": 31, "name": "Uttara (Princess)", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "Princess of the Matsya Kingdom, daughter of King Virata, and wife of Abhimanyu.", "relationships": [{ "related_to": 34, "type": "Father" }, { "related_to": 29, "type": "Spouse" }, { "related_to": 70, "type": "Mother" }] },
+        { "id": 32, "name": "Ghatotkacha", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "The powerful half-rakshasa son of Bhima and Hidimbi.", "relationships": [{ "related_to": 46, "type": "Father" }, { "related_to": 33, "type": "Mother" }] },
+        { "id": 33, "name": "Hidimbi", "aliases": [], "category": "Nagas, Asuras, Rakshasas", "description": "A Rakshasi who fell in love with Bhima and married him.", "relationships": [{ "related_to": 46, "type": "Spouse" }, { "related_to": 32, "type": "Mother" }] },
+        { "id": 34, "name": "Virata", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "King of the Matsya Kingdom, who gave shelter to the Pandavas during their year of incognito exile.", "relationships": [{ "related_to": 31, "type": "Daughter" }, { "related_to": 45, "type": "Ally" }, { "related_to": 29, "type": "Son-in-law" }] },
+        { "id": 35, "name": "Shakuni", "aliases": [], "category": "Allies & Friends of the Kauravas", "description": "The maternal uncle of the Kauravas and the master manipulator behind the infamous dice game.", "relationships": [{ "related_to": 16, "type": "Sister" }, { "related_to": 17, "type": "Nephew" }, { "related_to": 48, "type": "Slayer" }] },
+        { "id": 38, "name": "Ashwatthama", "aliases": [], "category": "Allies & Friends of the Kauravas", "description": "Son of Dronacharya. He is one of the few survivors of the Kurukshetra War.", "relationships": [{ "related_to": 39, "type": "Father" }, { "related_to": 17, "type": "Ally" }] },
+        { "id": 39, "name": "Dronacharya", "aliases": ["Drona"], "category": "Allies & Friends of the Kauravas", "description": "The royal teacher of both the Pandavas and Kauravas.", "relationships": [{ "related_to": 38, "type": "Son" }, { "related_to": 40, "type": "Brother-in-law" }, { "related_to": 13, "type": "Teacher" }, { "related_to": 17, "type": "Teacher" }, { "related_to": 25, "type": "Childhood Friend and Rival" }, { "related_to": 27, "type": "Slain by" }] },
+        { "id": 40, "name": "Kripacharya", "aliases": ["Kripa"], "category": "Allies & Friends of the Kauravas", "description": "The royal preceptor of the Kuru princes. He is an immortal and fought for the Kauravas.", "relationships": [{ "related_to": 39, "type": "Brother-in-law" }, { "related_to": 17, "type": "Teacher" }] },
+        { "id": 42, "name": "Shalya", "aliases": [], "category": "Allies & Friends of the Kauravas", "description": "King of Madra and the maternal uncle of Nakula and Sahadeva. He was tricked into fighting for the Kauravas.", "relationships": [{ "related_to": 76, "type": "Sister" }, { "related_to": 47, "type": "Nephew" }, { "related_to": 48, "type": "Nephew" }, { "related_to": 17, "type": "Ally" }, { "related_to": 45, "type": "Slain by" }] },
+        { "id": 44, "name": "Yuyutsu", "aliases": [], "category": "Allies & Friends of the Pandavas", "description": "A son of Dhritarashtra through a Vaishya maid. He defected to the Pandava side before the war.", "relationships": [{ "related_to": 15, "type": "Father" }, { "related_to": 17, "type": "Half-brother" }, { "related_to": 45, "type": "Cousin and Ally" }] },
+        { "id": 45, "name": "Yudhishthira", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The eldest Pandava, son of Kunti and the god Dharma.", "relationships": [{ "related_to": 11, "type": "Father" }, { "related_to": 12, "type": "Mother" }, { "related_to": 52, "type": "Spiritual Father" }, { "related_to": 46, "type": "Brother" }, { "related_to": 13, "type": "Brother" }, { "related_to": 47, "type": "Half-brother" }, { "related_to": 48, "type": "Half-brother" }, { "related_to": 14, "type": "Half-brother" }, { "related_to": 26, "type": "Spouse" }] },
+        { "id": 46, "name": "Bhima", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The second Pandava, son of Kunti and the wind god Vayu. Known for his immense strength.", "relationships": [{ "related_to": 11, "type": "Father" }, { "related_to": 12, "type": "Mother" }, { "related_to": 53, "type": "Spiritual Father" }, { "related_to": 45, "type": "Brother" }, { "related_to": 13, "type": "Brother" }, { "related_to": 47, "type": "Half-brother" }, { "related_to": 48, "type": "Half-brother" }, { "related_to": 14, "type": "Half-brother" }, { "related_to": 26, "type": "Spouse" }, { "related_to": 33, "type": "Spouse" }, { "related_to": 32, "type": "Son" }] },
+        { "id": 47, "name": "Nakula", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "One of the twin sons of Madri and the divine Ashwini Kumars.", "relationships": [{ "related_to": 11, "type": "Father" }, { "related_to": 76, "type": "Mother" }, { "related_to": 55, "type": "Spiritual Father" }, { "related_to": 48, "type": "Twin Brother" }, { "related_to": 45, "type": "Half-brother" }, { "related_to": 46, "type": "Half-brother" }, { "related_to": 13, "type": "Half-brother" }, { "related_to": 26, "type": "Spouse" }, { "related_to": 42, "type": "Maternal Uncle" }] },
+        { "id": 48, "name": "Sahadeva", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "One of the twin sons of Madri and the divine Ashwini Kumars.", "relationships": [{ "related_to": 11, "type": "Father" }, { "related_to": 76, "type": "Mother" }, { "related_to": 55, "type": "Spiritual Father" }, { "related_to": 47, "type": "Twin Brother" }, { "related_to": 45, "type": "Half-brother" }, { "related_to": 46, "type": "Half-brother" }, { "related_to": 13, "type": "Half-brother" }, { "related_to": 26, "type": "Spouse" }, { "related_to": 42, "type": "Maternal Uncle" }, { "related_to": 35, "type": "Slain by" }] },
+        { "id": 49, "name": "Adhiratha", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "A charioteer who found and raised Karna.", "relationships": [{ "related_to": 50, "type": "Spouse" }, { "related_to": 14, "type": "Adoptive Father" }] },
+        { "id": 50, "name": "Radha", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "Wife of Adhiratha and the adoptive mother of Karna.", "relationships": [{ "related_to": 49, "type": "Spouse" }, { "related_to": 14, "type": "Adoptive Mother" }] },
+        { "id": 51, "name": "Unnamed maid", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "An attendant of Ambika who became the mother of Vidura through niyoga with Vyasa.", "relationships": [{ "related_to": 6, "type": "Partner", "notes": "via niyoga" }, { "related_to": 21, "type": "Mother" }] },
+        { "id": 52, "name": "Yama", "aliases": ["Dharmaraja"], "category": "Celestial & Mythological Beings", "description": "The god of righteousness and justice, spiritual father of Yudhishthira.", "relationships": [{ "related_to": 45, "type": "Spiritual Son" }] },
+        { "id": 53, "name": "Vayu", "aliases": [], "category": "Celestial & Mythological Beings", "description": "The god of the wind, spiritual father of Bhima.", "relationships": [{ "related_to": 46, "type": "Spiritual Son" }] },
+        { "id": 54, "name": "Surya", "aliases": [], "category": "Celestial & Mythological Beings", "description": "The sun god, spiritual father of Karna.", "relationships": [{ "related_to": 14, "type": "Spiritual Son" }] },
+        { "id": 55, "name": "Ashwini Kumars", "aliases": [], "category": "Celestial & Mythological Beings", "description": "Divine twin horsemen, spiritual fathers of Nakula and Sahadeva.", "relationships": [{ "related_to": 47, "type": "Spiritual Son" }, { "related_to": 48, "type": "Spiritual Son" }] },
+        { "id": 64, "name": "Indra", "aliases": [], "category": "Celestial & Mythological Beings", "description": "King of the Devas (gods) and the spiritual father of Arjuna.", "relationships": [{ "related_to": 13, "type": "Spiritual Son" }] },
+        { "id": 67, "name": "Takshaka", "aliases": [], "category": "Nagas, Asuras, Rakshasas", "description": "A king of the Nagas (serpents) who was an enemy of Arjuna and later killed his grandson, Parikshit.", "relationships": [{ "related_to": 70, "type": "Slayer" }] },
+        { "id": 69, "name": "Baka", "aliases": [], "category": "Nagas, Asuras, Rakshasas", "description": "A Rakshasa who terrorized the village of Ekachakra and was killed by Bhima.", "relationships": [{ "related_to": 46, "type": "Slain by" }] },
+        { "id": 70, "name": "Parikshit", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "The posthumous son of Abhimanyu and Uttara. He succeeded Yudhishthira as the King of Hastinapura.", "relationships": [{ "related_to": 29, "type": "Father" }, { "related_to": 31, "type": "Mother" }, { "related_to": 13, "type": "Grandfather" }, { "related_to": 34, "type": "Grandfather" }, { "related_to": 67, "type": "Slain by" }] },
+        { "id": 72, "name": "Vikarna", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "A Kaurava brother known for his sense of justice.", "relationships": [{ "related_to": 15, "type": "Father" }, { "related_to": 16, "type": "Mother" }, { "related_to": 17, "type": "Brother" }] },
+        { "id": 76, "name": "Madri", "aliases": [], "category": "Kuru Dynasty (Hastinapura Royal Family)", "description": "Second wife of Pandu and mother of the twins Nakula and Sahadeva.", "relationships": [{ "related_to": 11, "type": "Spouse" }, { "related_to": 42, "type": "Brother" }, { "related_to": 55, "type": "Divine Partner", "notes": "Conceived Nakula & Sahadeva."}, { "related_to": 47, "type": "Mother" }, { "related_to": 48, "type": "Mother" }] }
+      ]
+    };
+
+    // --- Chart Setup ---
+    const container = document.getElementById('chart-container');
+    const svg = d3.select("#genealogy-chart");
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    svg.attr("viewBox", [-width / 2, -height / 2, width, height]);
+
+    const tooltip = d3.select("#tooltip");
+
+    // --- Data Processing ---
+    const nodes = jsonData.mahabharata_genealogy;
+    const links = [];
+    const nodeIds = new Set(nodes.map(n => n.id));
+
+    nodes.forEach(node => {
+        if (node.relationships) {
+            node.relationships.forEach(rel => {
+                // Ensure the target node exists in our dataset to avoid broken links
+                if (nodeIds.has(rel.related_to)) {
+                    links.push({
+                        source: node.id,
+                        target: rel.related_to,
+                        type: rel.type
+                    });
+                }
+            });
+        }
+    });
+
+    // --- Color Scale & Legend ---
+    const categories = [...new Set(nodes.map(n => n.category))];
+    const colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(categories);
+
+    const legend = d3.select("#legend");
+    categories.forEach(category => {
+        const legendItem = legend.append("div").attr("class", "legend-item");
+        legendItem.append("div")
+            .attr("class", "legend-color")
+            .style("background-color", colorScale(category));
+        legendItem.append("span").text(category);
+    });
+
+    // --- D3 Force Simulation ---
+    const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+        .force("charge", d3.forceManyBody().strength(-150))
+        .force("center", d3.forceCenter(0, 0))
+        .force("x", d3.forceX())
+        .force("y", d3.forceY());
+
+    // --- Render Elements ---
+    const link = svg.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(links)
+        .enter().append("line")
+        .attr("class", "link");
+
+    const node = svg.append("g")
+        .attr("class", "nodes")
+        .selectAll("g")
+        .data(nodes)
+        .enter().append("g")
+        .attr("class", "node");
+
+    node.append("circle")
+        .attr("r", 10)
+        .attr("fill", d => colorScale(d.category));
+
+    node.append("text")
+        .text(d => d.name)
+        .attr("y", -15);
+        
+    // --- Interactivity ---
+    node.on("mouseover", (event, d) => {
+        tooltip.style("visibility", "visible").style("opacity", 1);
+        tooltip.html(`<h3>${d.name}</h3><p><strong>Category:</strong> ${d.category}</p><p>${d.description}</p>`);
+    })
+    .on("mousemove", (event) => {
+        tooltip.style("top", (event.pageY - 10) + "px").style("left", (event.pageX + 10) + "px");
+    })
+    .on("mouseout", () => {
+        tooltip.style("visibility", "hidden").style("opacity", 0);
+    });
+
+    node.call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+
+    // --- Simulation Ticker ---
+    simulation.on("tick", () => {
+        link
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        node
+            .attr("transform", d => `translate(${d.x},${d.y})`);
+    });
+
+    // --- Drag Functions ---
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+
+</script>
+
+</body>
+</html>
